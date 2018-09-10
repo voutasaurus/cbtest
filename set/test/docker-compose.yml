@@ -1,0 +1,19 @@
+version: '3'
+
+networks:
+  default:
+
+services:
+
+  hello:
+    image: hello
+    container_name: hello.cbtest
+    environment:
+      - HELLO_DATABASE_ADDR=http://db.cbtest:14268
+      - HELLO_ADDR=:8080
+    ports:
+      - 8080:8080
+    networks:
+      default:
+        aliases:
+          - hello.cbtest
