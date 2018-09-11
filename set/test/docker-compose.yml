@@ -9,7 +9,7 @@ services:
     image: hello
     container_name: hello.cbtest
     environment:
-      - HELLO_DATABASE_ADDR=http://couch.cbtest:8091
+      - COUCHBASE_CONNECT=couchbase://couch.cbtest
       - HELLO_ADDR=:8080
     ports:
       - 8080:8080
@@ -17,11 +17,16 @@ services:
       default:
         aliases:
           - hello.cbtest
+
   couch:
     image: couchlocal
     container_name: couch.cbtest
     ports:
       - 8091:8091
+      - 8092:8092
+      - 8093:8093
+      - 8094:8094
+      - 11210:11210
     networks:
       default:
         aliases:

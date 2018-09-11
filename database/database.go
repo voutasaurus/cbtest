@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/couchbase/gocb"
 )
@@ -20,15 +21,15 @@ type Config struct {
 func NewDB(c *Config) (*DB, error) {
 	cluster, err := gocb.Connect(c.ConnectString)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("db cluster connect error: %v", err)
 	}
 	cluster.Authenticate(gocb.PasswordAuthenticator{
 		Username: c.Username,
 		Password: c.Password,
 	})
-	bucket, err := cluster.OpenBucket(c.Bucket, c.Password)
+	bucket, err := cluster.OpenBucket(c.Bucket, "")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("db bucket open error: %v", err)
 	}
 	// TODO: bucket.Ping to verify?
 	return &DB{db: bucket}, nil

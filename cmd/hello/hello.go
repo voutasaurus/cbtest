@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/voutasaurus/cbtest/api"
 	"github.com/voutasaurus/cbtest/database"
@@ -22,14 +24,21 @@ func main() {
 		dbBucket   = env.Get("COUCHBASE_BUCKET").WithDefault("bucket")
 	)
 
-	h, err := api.NewHandler(&api.Config{
-		DB: &database.Config{
-			ConnectString: dbConnect,
-			Username:      dbUsername,
-			Password:      dbPassword,
-			Bucket:        dbBucket,
-		},
-	})
+	var h *api.Handler
+	err := errors.New("api handler not instantiated")
+	for i := 0; i < 20 && err != nil; i++ {
+		h, err = api.NewHandler(&api.Config{
+			DB: &database.Config{
+				ConnectString: dbConnect,
+				Username:      dbUsername,
+				Password:      dbPassword,
+				Bucket:        dbBucket,
+			},
+		})
+		if err != nil {
+			time.Sleep(1 * time.Second)
+		}
+	}
 	if err != nil {
 		logger.Fatalf("initializing API failed: %v", err)
 	}

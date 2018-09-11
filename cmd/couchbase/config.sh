@@ -3,13 +3,23 @@
 # adapted from https://github.com/cha87de/couchbase-docker-cloudnative
 
 function bucketCreate(){
-    couchbase-cli bucket-create -c localhost -u $USER -p $PASS \
+    couchbase-cli bucket-create -c localhost -u Administrator -p password \
         --bucket=$BUCKET \
         --bucket-type=couchbase \
         --bucket-ramsize=512 \
         --bucket-replica=1 \
         --wait
     if [[ $? != 0 ]]; then
+        return 1
+    fi
+}
+
+function userCreate(){
+    createOutput=$(couchbase-cli user-manage -c localhost -u Administrator -p password \
+     --set --rbac-username $USER --rbac-password $PASS \
+     --roles bucket_admin[$BUCKET] --auth-domain local)
+    if [[ $? != 0 ]]; then
+        echo "" >&2
         return 1
     fi
 }
@@ -23,8 +33,8 @@ function clusterUp(){
 
     # initialize cluster
     initOutput=$(couchbase-cli cluster-init -c localhost \
-            --cluster-username=$USER \
-            --cluster-password=$PASS \
+            --cluster-username=Administrator \
+            --cluster-password=password \
             --cluster-port=8091 \
             --services=data,index,query,fts \
             --cluster-ramsize=1024 \
@@ -55,6 +65,12 @@ function main(){
     bucketCreate
     if [[ $? != 0 ]]; then
         echo "Bucket create failed. Exiting." >&2
+        exit 1
+    fi
+
+    userCreate
+    if [[ $? != 0 ]]; then
+        echo "User create failed. Exiting." >&2
         exit 1
     fi
 }
