@@ -9,8 +9,11 @@ services:
     image: hello
     container_name: hello.cbtest
     environment:
-      - COUCHBASE_CONNECT=couchbase://couch.cbtest
       - HELLO_ADDR=:8080
+      - COUCHBASE_CONNECT=couchbase://couch.cbtest
+      - COUCHBASE_USER=admin
+      - COUCHBASE_PASSWORD=password
+      - COUCHBASE_BUCKET=bucket
     ports:
       - 8080:8080
     networks:
