@@ -51,6 +51,14 @@ func (db *DB) New(ctx context.Context, r *Record) (*Record, error) {
 	return r, nil
 }
 
+func (db *DB) Get(ctx context.Context, r *Record) (*Record, error) {
+	_, err := db.db.Get(r.Key, &r.Value)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
 func (db *DB) Search(ctx context.Context, r *Record) ([]*Record, error) {
 	// TODO: add timeout from context
 	// gocb.NewN1qlQuery(``).ReadOnly(true)

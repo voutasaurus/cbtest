@@ -53,12 +53,12 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) newHandler(w http.ResponseWriter, r *http.Request) {
 	var in database.Record
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		jsonError(w, r, err.Error(), 400)
+		jsonError(w, r, fmt.Sprintf("bad json payload: %v", err), 400)
 		return
 	}
 	out, err := h.db.New(r.Context(), &in)
 	if err != nil {
-		jsonError(w, r, err.Error(), 500)
+		jsonError(w, r, fmt.Sprintf("bad database: %v", err), 500)
 		return
 	}
 	json.NewEncoder(w).Encode(out)
@@ -67,12 +67,12 @@ func (h *Handler) newHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) searchHandler(w http.ResponseWriter, r *http.Request) {
 	var in database.Record
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		jsonError(w, r, err.Error(), 400)
+		jsonError(w, r, fmt.Sprintf("bad json payload: %v", err), 400)
 		return
 	}
 	out, err := h.db.Search(r.Context(), &in)
 	if err != nil {
-		jsonError(w, r, err.Error(), 500)
+		jsonError(w, r, fmt.Sprintf("bad database: %v", err), 500)
 		return
 	}
 	json.NewEncoder(w).Encode(out)
@@ -81,12 +81,12 @@ func (h *Handler) searchHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) updateHandler(w http.ResponseWriter, r *http.Request) {
 	var in database.Record
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		jsonError(w, r, err.Error(), 400)
+		jsonError(w, r, fmt.Sprintf("bad json payload: %v", err), 400)
 		return
 	}
 	out, err := h.db.Update(r.Context(), &in)
 	if err != nil {
-		jsonError(w, r, err.Error(), 500)
+		jsonError(w, r, fmt.Sprintf("bad database: %v", err), 500)
 		return
 	}
 	json.NewEncoder(w).Encode(out)
@@ -95,7 +95,7 @@ func (h *Handler) updateHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 	var in database.Record
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		jsonError(w, r, err.Error(), 400)
+		jsonError(w, r, fmt.Sprintf("bad json payload: %v", err), 400)
 		return
 	}
 	out, err := h.db.Delete(r.Context(), &in)

@@ -17,7 +17,7 @@ function bucketCreate(){
 function userCreate(){
     createOutput=$(couchbase-cli user-manage -c localhost -u Administrator -p password \
      --set --rbac-username $USER --rbac-password $PASS \
-     --roles bucket_admin[$BUCKET] --auth-domain local)
+     --roles admin --auth-domain local)
     if [[ $? != 0 ]]; then
         echo "" >&2
         return 1
