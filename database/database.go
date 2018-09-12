@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/couchbase/gocb"
 )
@@ -18,7 +19,34 @@ type Config struct {
 	Bucket        string
 }
 
-func NewDB(c *Config) (*DB, error) {
+func NewDB(ctx context.Context, c *Config) (*DB, error) {
+	db, err := newDB(c)
+	if err == nil {
+		return db, nil
+	}
+
+	// If no timeout is set, exit early
+	_, ok := ctx.Deadline()
+	if !ok {
+		return nil, err
+	}
+
+	// Wait for DB to become available (or timeout)
+	for {
+		time.Sleep(100 * time.Millisecond)
+		db, err := newDB(c)
+		if err == nil {
+			return db, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, err
+		default:
+		}
+	}
+}
+
+func newDB(c *Config) (*DB, error) {
 	cluster, err := gocb.Connect(c.ConnectString)
 	if err != nil {
 		return nil, fmt.Errorf("db cluster connect error: %v", err)
@@ -43,7 +71,7 @@ type Record struct {
 func (db *DB) New(ctx context.Context, r *Record) (*Record, error) {
 	// TODO: use InsertDura to validate durability
 	// TODO: retain the CAS?
-	// TODO: add timeout from context
+	// TODO: add timeout from context ctx.Deadline()
 	_, err := db.db.Insert(r.Key, r.Value, 0)
 	if err != nil {
 		return nil, err

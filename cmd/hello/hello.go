@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"context"
 	"log"
 	"net/http"
 	"os"
@@ -24,24 +24,19 @@ func main() {
 		dbBucket   = env.Get("COUCHBASE_BUCKET").WithDefault("bucket")
 	)
 
-	var h *api.Handler
-	err := errors.New("api handler not instantiated")
-	for i := 0; i < 20 && err != nil; i++ {
-		h, err = api.NewHandler(&api.Config{
-			DB: &database.Config{
-				ConnectString: dbConnect,
-				Username:      dbUsername,
-				Password:      dbPassword,
-				Bucket:        dbBucket,
-			},
-		})
-		if err != nil {
-			time.Sleep(1 * time.Second)
-		}
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	h, err := api.NewHandler(ctx, &api.Config{
+		DB: &database.Config{
+			ConnectString: dbConnect,
+			Username:      dbUsername,
+			Password:      dbPassword,
+			Bucket:        dbBucket,
+		},
+	})
 	if err != nil {
 		logger.Fatalf("initializing API failed: %v", err)
 	}
+	cancel()
 
 	logger.Println("serving on", addr)
 	logger.Fatal(http.ListenAndServe(addr, h))

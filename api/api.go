@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -21,8 +22,8 @@ type Config struct {
 	DB  *database.Config
 }
 
-func NewHandler(c *Config) (*Handler, error) {
-	db, err := database.NewDB(c.DB)
+func NewHandler(ctx context.Context, c *Config) (*Handler, error) {
+	db, err := database.NewDB(ctx, c.DB)
 	if err != nil {
 		return nil, err
 	}
