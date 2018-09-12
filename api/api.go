@@ -36,6 +36,7 @@ func NewHandler(c *Config) (*Handler, error) {
 		log: logger,
 	}
 	h.mux.HandleFunc("/new", h.newHandler)
+	h.mux.HandleFunc("/get", h.getHandler)
 	h.mux.HandleFunc("/search", h.searchHandler)
 	h.mux.HandleFunc("/update", h.updateHandler)
 	h.mux.HandleFunc("/delete", h.deleteHandler)
@@ -57,6 +58,20 @@ func (h *Handler) newHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	out, err := h.db.New(r.Context(), &in)
+	if err != nil {
+		jsonError(w, r, fmt.Sprintf("bad database: %v", err), 500)
+		return
+	}
+	json.NewEncoder(w).Encode(out)
+}
+
+func (h *Handler) getHandler(w http.ResponseWriter, r *http.Request) {
+	var in database.Record
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		jsonError(w, r, fmt.Sprintf("bad json payload: %v", err), 400)
+		return
+	}
+	out, err := h.db.Get(r.Context(), &in)
 	if err != nil {
 		jsonError(w, r, fmt.Sprintf("bad database: %v", err), 500)
 		return
