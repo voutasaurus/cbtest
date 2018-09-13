@@ -19,7 +19,16 @@ function userCreate(){
      --set --rbac-username $USER --rbac-password $PASS \
      --roles admin --auth-domain local)
     if [[ $? != 0 ]]; then
-        echo "" >&2
+        echo $createOutput >&2
+        return 1
+    fi
+}
+
+function indexCreate(){
+    cmd='CREATE PRIMARY INDEX ON `'$BUCKET'`'
+    createOutput=$(cbq -u $USER -p $PASS --script="$cmd")
+    if [[ $? != 0 ]]; then
+        echo $createOutput >&2
         return 1
     fi
 }
@@ -71,6 +80,12 @@ function main(){
     userCreate
     if [[ $? != 0 ]]; then
         echo "User create failed. Exiting." >&2
+        exit 1
+    fi
+
+    indexCreate
+    if [[ $? != 0 ]]; then
+        echo "Index create failed. Exiting." >&2
         exit 1
     fi
 }

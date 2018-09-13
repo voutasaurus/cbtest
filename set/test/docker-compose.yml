@@ -13,7 +13,7 @@ services:
       - COUCHBASE_CONNECT=couchbase://couch.cbtest
       - COUCHBASE_USER=admin
       - COUCHBASE_PASSWORD=password
-      - COUCHBASE_BUCKET=bucket
+      - COUCHBASE_BUCKET=testbucket
     ports:
       - 8080:8080
     networks:

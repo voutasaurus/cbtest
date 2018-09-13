@@ -9,7 +9,8 @@ import (
 )
 
 type DB struct {
-	db *gocb.Bucket
+	db     *gocb.Bucket
+	bucket string
 }
 
 type Config struct {
@@ -60,12 +61,23 @@ func newDB(c *Config) (*DB, error) {
 		return nil, fmt.Errorf("db bucket open error: %v", err)
 	}
 	// TODO: bucket.Ping to verify?
-	return &DB{db: bucket}, nil
+	return &DB{db: bucket, bucket: c.Bucket}, nil
+}
+
+// Close is not graceful. If in flight operations are important then ensure
+// they are complete before calling Close.
+//
+// TODO: gracefully shut down database connection
+func (db *DB) Close() error {
+	return db.db.Close()
 }
 
 type Record struct {
 	Key   string
-	Value string
+	Value struct {
+		Type string `json:"type"`
+		X    string `json:"x"`
+	}
 }
 
 func (db *DB) New(ctx context.Context, r *Record) (*Record, error) {
@@ -87,10 +99,32 @@ func (db *DB) Get(ctx context.Context, r *Record) (*Record, error) {
 	return r, nil
 }
 
+func (db *DB) query(stmt string, args map[string]interface{}) (gocb.QueryResults, error) {
+	q := gocb.NewN1qlQuery(stmt).ReadOnly(true)
+	return db.db.ExecuteN1qlQuery(q, args)
+}
+
 func (db *DB) Search(ctx context.Context, r *Record) ([]*Record, error) {
 	// TODO: add timeout from context
-	// gocb.NewN1qlQuery(``).ReadOnly(true)
-	return nil, nil
+	rows, err := db.query(
+		"SELECT * FROM `"+db.bucket+"` as `value` WHERE type == $type AND x LIKE $prefix",
+		map[string]interface{}{
+			"type":   "x",
+			"prefix": r.Value.X + "%",
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var rr []*Record
+	for next := true; next; {
+		var rec Record
+		if next = rows.Next(&rec); next {
+			rr = append(rr, &rec)
+		}
+	}
+	return rr, nil
 }
 
 func (db *DB) Update(ctx context.Context, r *Record) (*Record, error) {

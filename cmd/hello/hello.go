@@ -21,7 +21,7 @@ func main() {
 		dbConnect  = env.Get("COUCHBASE_CONNECT").WithDefault("couchbase://localhost")
 		dbUsername = env.Get("COUCHBASE_USER").WithDefault("admin")
 		dbPassword = env.Get("COUCHBASE_PASS").WithDefault("password")
-		dbBucket   = env.Get("COUCHBASE_BUCKET").WithDefault("bucket")
+		dbBucket   = env.Get("COUCHBASE_BUCKET").WithDefault("testbucket")
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
