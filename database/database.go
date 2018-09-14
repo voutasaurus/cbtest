@@ -2,14 +2,18 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/couchbase/gocb"
 )
 
 type DB struct {
-	db     *gocb.Bucket
+	db *gocb.Bucket
+
+	// bucket is the escaped bucket name connected to by db.
 	bucket string
 }
 
@@ -47,7 +51,12 @@ func NewDB(ctx context.Context, c *Config) (*DB, error) {
 	}
 }
 
+var errBucketName = errors.New("invalid bucket name, cannot contain `")
+
 func newDB(c *Config) (*DB, error) {
+	if strings.ContainsRune(c.Bucket, '`') {
+		return nil, errBucketName
+	}
 	cluster, err := gocb.Connect(c.ConnectString)
 	if err != nil {
 		return nil, fmt.Errorf("db cluster connect error: %v", err)
@@ -61,7 +70,7 @@ func newDB(c *Config) (*DB, error) {
 		return nil, fmt.Errorf("db bucket open error: %v", err)
 	}
 	// TODO: bucket.Ping to verify?
-	return &DB{db: bucket, bucket: c.Bucket}, nil
+	return &DB{db: bucket, bucket: "`" + c.Bucket + "`"}, nil
 }
 
 // Close is not graceful. If in flight operations are important then ensure
@@ -73,8 +82,8 @@ func (db *DB) Close() error {
 }
 
 type Record struct {
-	Key   string
-	Value struct {
+	ID  string
+	Doc struct {
 		Type string `json:"type"`
 		X    string `json:"x"`
 	}
@@ -84,7 +93,7 @@ func (db *DB) New(ctx context.Context, r *Record) (*Record, error) {
 	// TODO: use InsertDura to validate durability
 	// TODO: retain the CAS?
 	// TODO: add timeout from context ctx.Deadline()
-	_, err := db.db.Insert(r.Key, r.Value, 0)
+	_, err := db.db.Insert(r.ID, r.Doc, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +101,7 @@ func (db *DB) New(ctx context.Context, r *Record) (*Record, error) {
 }
 
 func (db *DB) Get(ctx context.Context, r *Record) (*Record, error) {
-	_, err := db.db.Get(r.Key, &r.Value)
+	_, err := db.db.Get(r.ID, &r.Doc)
 	if err != nil {
 		return nil, err
 	}
@@ -104,13 +113,21 @@ func (db *DB) query(stmt string, args map[string]interface{}) (gocb.QueryResults
 	return db.db.ExecuteN1qlQuery(q, args)
 }
 
+func (db *DB) exec(stmt string, args map[string]interface{}) (gocb.QueryResults, error) {
+	q := gocb.NewN1qlQuery(stmt)
+	return db.db.ExecuteN1qlQuery(q, args)
+}
+
 func (db *DB) Search(ctx context.Context, r *Record) ([]*Record, error) {
 	// TODO: add timeout from context
 	rows, err := db.query(
-		"SELECT * FROM `"+db.bucket+"` as `value` WHERE type == $type AND x LIKE $prefix",
+		`SELECT {type,x} AS doc,
+		  META(`+db.bucket+`).id AS id
+		  FROM `+db.bucket+`
+		  WHERE type == $type AND x LIKE $prefix`,
 		map[string]interface{}{
 			"type":   "x",
-			"prefix": r.Value.X + "%",
+			"prefix": r.Doc.X + "%",
 		},
 	)
 	if err != nil {
