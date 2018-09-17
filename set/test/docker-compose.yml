@@ -24,6 +24,10 @@ services:
   couch:
     image: couchlocal
     container_name: couch.cbtest
+    environment:
+      - USER=admin
+      - PASS=password
+      - BUCKET=testbucket
     ports:
       - 8091:8091
       - 8092:8092

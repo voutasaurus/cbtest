@@ -57,9 +57,10 @@ function clusterUp(){
 }
 
 function main(){
+    set -ex
     echo "Couchbase UI :8091"
     echo "Couchbase logs /opt/couchbase/var/lib/couchbase/logs"
-    exec /usr/sbin/runsvdir-start &
+    ./entrypoint.sh couchbase-server &
     if [[ $? != 0 ]]; then
         echo "Couchbase startup failed. Exiting." >&2
         exit 1
@@ -88,8 +89,12 @@ function main(){
         echo "Index create failed. Exiting." >&2
         exit 1
     fi
+
+    set +ex
+
+    # entrypoint.sh launches the server but since config.sh is pid 1 we keep it
+    # running so that the docker container does not exit.
+    wait
 }
 
-set -ex
 main
-set +ex
