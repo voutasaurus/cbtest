@@ -9,7 +9,6 @@ cd $scriptdir
 docker-compose down
 docker ps -aq | xargs docker rm -f;
 docker network prune -f;
-rm -r ../../cmd/couchbase/tmpconfig
 
 # cleanup
 set +ex

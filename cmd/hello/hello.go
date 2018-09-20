@@ -24,7 +24,7 @@ func main() {
 		dbBucket   = env.Get("COUCHBASE_BUCKET").WithDefault("testbucket")
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	h, err := api.NewHandler(ctx, &api.Config{
 		DB: &database.Config{
 			ConnectString: dbConnect,
