@@ -1,0 +1,1 @@
+INSERT INTO testbucket ( KEY, VALUE ) VALUES ( $id, {"id":$id} )
