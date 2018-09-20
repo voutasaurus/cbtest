@@ -41,6 +41,8 @@ func NewHandler(ctx context.Context, c *Config) (*Handler, error) {
 	h.mux.HandleFunc("/search", h.searchHandler)
 	h.mux.HandleFunc("/update", h.updateHandler)
 	h.mux.HandleFunc("/delete", h.deleteHandler)
+	h.mux.HandleFunc("/read", h.readHandler)
+	h.mux.HandleFunc("/write", h.writeHandler)
 	h.mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		h.log.Println("hit")
 		fmt.Fprintln(w, "hello")
@@ -120,6 +122,34 @@ func (h *Handler) deleteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(out)
+}
+
+func (h *Handler) readHandler(w http.ResponseWriter, r *http.Request) {
+	var in database.Query
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		jsonError(w, r, fmt.Sprintf("bad json payload: %v", err), 400)
+		return
+	}
+	out, err := h.db.Read(r.Context(), &in)
+	if err != nil {
+		jsonError(w, r, err.Error(), 500)
+		return
+	}
+	w.Write(out)
+}
+
+func (h *Handler) writeHandler(w http.ResponseWriter, r *http.Request) {
+	var in database.Query
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		jsonError(w, r, fmt.Sprintf("bad json payload: %v", err), 400)
+		return
+	}
+	out, err := h.db.Write(r.Context(), &in)
+	if err != nil {
+		jsonError(w, r, err.Error(), 500)
+		return
+	}
+	w.Write(out)
 }
 
 func jsonError(w http.ResponseWriter, r *http.Request, msg string, code int) {

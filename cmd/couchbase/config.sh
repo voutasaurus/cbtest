@@ -2,6 +2,17 @@
 
 # adapted from https://github.com/cha87de/couchbase-docker-cloudnative
 
+function retry() {
+    for i in $(seq 1 10); do
+        $1
+	if [[ $? == 0 ]]; then
+	    return 0
+	fi
+	sleep 1
+    done
+    return 1
+}
+
 function bucketCreate(){
     couchbase-cli bucket-create -c localhost -u Administrator -p password \
         --bucket=$BUCKET \
@@ -72,19 +83,19 @@ function main(){
         exit 1
     fi
 
-    bucketCreate
+    retry bucketCreate
     if [[ $? != 0 ]]; then
         echo "Bucket create failed. Exiting." >&2
         exit 1
     fi
 
-    userCreate
+    retry userCreate
     if [[ $? != 0 ]]; then
         echo "User create failed. Exiting." >&2
         exit 1
     fi
 
-    indexCreate
+    retry indexCreate
     if [[ $? != 0 ]]; then
         echo "Index create failed. Exiting." >&2
         exit 1

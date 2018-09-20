@@ -1,6 +1,7 @@
 package database
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -108,19 +109,25 @@ func (db *DB) Get(ctx context.Context, r *Record) (*Record, error) {
 	return r, nil
 }
 
-func (db *DB) query(stmt string, args map[string]interface{}) (gocb.QueryResults, error) {
+func (db *DB) query(ctx context.Context, stmt string, args map[string]interface{}) (gocb.QueryResults, error) {
 	q := gocb.NewN1qlQuery(stmt).ReadOnly(true)
+	if d, ok := ctx.Deadline(); ok {
+		q = q.Timeout(time.Until(d))
+	}
 	return db.db.ExecuteN1qlQuery(q, args)
 }
 
-func (db *DB) exec(stmt string, args map[string]interface{}) (gocb.QueryResults, error) {
+func (db *DB) exec(ctx context.Context, stmt string, args map[string]interface{}) (gocb.QueryResults, error) {
 	q := gocb.NewN1qlQuery(stmt)
+	if d, ok := ctx.Deadline(); ok {
+		q = q.Timeout(time.Until(d))
+	}
 	return db.db.ExecuteN1qlQuery(q, args)
 }
 
 func (db *DB) Search(ctx context.Context, r *Record) ([]*Record, error) {
 	// TODO: add timeout from context
-	rows, err := db.query(
+	rows, err := db.query(ctx,
 		`SELECT {type,x} AS doc,
 		  META(`+db.bucket+`).id AS id
 		  FROM `+db.bucket+`
@@ -150,4 +157,45 @@ func (db *DB) Update(ctx context.Context, r *Record) (*Record, error) {
 
 func (db *DB) Delete(ctx context.Context, r *Record) (*Record, error) {
 	return nil, nil
+}
+
+type Query struct {
+	Stmt string
+	Args map[string]interface{}
+}
+
+func (db *DB) Read(ctx context.Context, q *Query) ([]byte, error) {
+	rows, err := db.query(ctx, q.Stmt, q.Args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out bytes.Buffer
+	var b []byte
+	for more := true; more; more = b != nil {
+		b = rows.NextBytes()
+		if b != nil {
+			out.Write(b)
+			out.WriteRune('\n')
+		}
+	}
+	return out.Bytes(), nil
+}
+
+func (db *DB) Write(ctx context.Context, q *Query) ([]byte, error) {
+	rows, err := db.exec(ctx, q.Stmt, q.Args)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out bytes.Buffer
+	var b []byte
+	for more := true; more; more = b != nil {
+		b = rows.NextBytes()
+		if b != nil {
+			out.Write(b)
+			out.WriteRune('\n')
+		}
+	}
+	return out.Bytes(), nil
 }
