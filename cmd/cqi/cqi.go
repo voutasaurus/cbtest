@@ -15,7 +15,10 @@ import (
 
 func main() {
 	c := &client{api: "http://localhost:8080"}
-	cmd := os.Args[1]
+	cmd := ""
+	if len(os.Args) > 1 {
+		cmd = os.Args[1]
+	}
 	os.Args = os.Args[1:] // skip this for the subcommands
 	switch cmd {
 	case "read":
@@ -23,7 +26,8 @@ func main() {
 	case "write":
 		do(c.write)
 	default:
-		log.Fatalf("cannot run command: %q", cmd)
+		log.Printf("cannot run command: %q", cmd)
+		log.Fatalf("available commands: read, write")
 	}
 }
 
